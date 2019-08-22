@@ -1,6 +1,20 @@
 -- Pushblocks
 -- (c)2019 Nigel Garnett.
 
+colors = {
+	{"red",        "Red",       "#ff0000"},
+	{"green",      "Green",     "#00ff00"},
+	{"blue",       "Blue",      "#0000ff"},
+	{"white",      "White",     "#ffffff"},
+	{"black",      "Black",     "#000000"},
+	{"cyan",       "Cyan",      "#00ffff"},
+	{"magenta",    "Magenta",   "#ff00ff"},
+	{"yellow",     "Yellow",    "#ffff00"},
+}
+
+shapes = {"cone", "pyramid", "sphere" }
+
+
 local function push_pull(pos,pt,dir)
     local ptpos = minetest.get_pointed_thing_position(pt, true)
     local add = { x=0, y=0, z=0 }
@@ -26,40 +40,44 @@ local function move_block(pos,dir,clicker)
     end
 end
 
-
-minetest.register_node("pushblocks:ball", {
-    description = "Pushblocks Ball",
-    drawtype = "mesh",
-    mesh = "mymeshnodes_sphere.obj",
-    tiles = {"pushblocks_plain_ball.png^[colorize:#ff00ff:100"},
-    is_ground_content = false,
-    stack_max = 1,
-    light_source = core.LIGHT_MAX,
-    groups = {cracky = 3, snappy = 3, crumbly = 3},
-    on_blast = function() end,
-    on_punch = function(pos, node, puncher, pointed_thing)
-        if puncher:get_player_control().sneak then
-            local inv = puncher:get_inventory()
-            if not (creative and creative.is_enabled_for
-                    and creative.is_enabled_for(puncher:get_player_name()))
-                    or not inv:contains_item("main", "pushblocks:ball") then
-                local leftover = inv:add_item("main", "pushblocks:ball")
-                if not leftover:is_empty() then
-                    minetest.add_item(self.object:get_pos(), leftover)
+for _,c in pairs(colors) do
+    for i,s in pairs(shapes) do
+        node = "pushblocks:"..s.."_"..c[1]
+        minetest.register_node(node, {
+            description = c[2].." "..s.." Pushblock",
+            drawtype = "mesh",
+            mesh = "pushblocks_"..s..".obj",
+            tiles = {"pushblocks_plain.png^[colorize:"..c[3]..":127"},
+            is_ground_content = false,
+--            stack_max = 1,
+            light_source = core.LIGHT_MAX,
+            groups = {cracky = 3, snappy = 3, crumbly = 3},
+            on_blast = function() end,
+            on_punch = function(pos, node, puncher, pointed_thing)
+                if puncher:get_player_control().sneak then
+                    local inv = puncher:get_inventory()
+                    if not (creative and creative.is_enabled_for
+                            and creative.is_enabled_for(puncher:get_player_name()))
+                            or not inv:contains_item("main", node) then
+                        local leftover = inv:add_item("main", node)
+                        if not leftover:is_empty() then
+                            minetest.add_item(self.object:get_pos(), leftover)
+                        end
+                    end
+                    minetest.set_node(pos,{name="air"})
+                else
+                    move_block(pos, push_pull(pos,pointed_thing,1), puncher)
                 end
-            end
-            minetest.set_node(pos,{name="air"})
-        else
-            move_block(pos, push_pull(pos,pointed_thing,1), puncher)
-        end
-        return true
-    end,
-    on_dig = function() end,
-    on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
-        move_block(pos, push_pull(pos,pointed_thing,-1), clicker)
-        return false
-    end,
-    can_dig = function(pos,player)
-        return false
-    end,
-})
+                return true
+            end,
+            on_dig = function() end,
+            on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+                move_block(pos, push_pull(pos,pointed_thing,-1), clicker)
+                return false
+            end,
+            can_dig = function(pos,player)
+                return false
+            end,
+        })
+    end
+end
